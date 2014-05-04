@@ -6,6 +6,7 @@ using Microsoft.Live;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -264,6 +265,72 @@ namespace CoPilot.OneDrive
             }
         }
 
+        /// <summary>
+        /// Get uplaod on background
+        /// </summary>
+        private LivePendingUpload GetUploadOnBackground(Uri url)
+        {
+            var uploads = this.liveClient.GetPendingBackgroundUploads();
+            foreach (var upload in uploads)
+            {
+                var fields = upload.GetType().GetRuntimeFields().ToArray();
+                foreach (var field in fields)
+                {
+                    if (field.Name == "request")
+                    {
+                        var request = field.GetValue(upload);
+                        var requestUrl = request.GetType().GetRuntimeProperty("UploadLocation").GetValue(request) as Uri;
+                        if (requestUrl.OriginalString.Replace("\\", "/") == url.OriginalString)
+                        {
+                            return upload;
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Get download on background
+        /// </summary>
+        /// <param name="uri"></param>
+        /// <returns></returns>
+        private LivePendingDownload GetDownloadOnBackground(Uri url)
+        {
+            var uploads = this.liveClient.GetPendingBackgroundDownloads();
+            foreach (var upload in uploads)
+            {
+                var fields = upload.GetType().GetRuntimeFields().ToArray();
+                foreach (var field in fields)
+                {
+                    if (field.Name == "request")
+                    {
+                        var request = field.GetValue(upload);
+                        var requestUrl = request.GetType().GetRuntimeProperty("UploadLocation").GetValue(request) as Uri;
+                        if (requestUrl.OriginalString.Replace("\\", "/") == url.OriginalString)
+                        {
+                            return upload;
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// False progress state
+        /// </summary>
+        /// <param name="bar"></param>
+        private void falseProgressState(Progress bar)
+        {
+            //bar update
+            bar.Selected = false;
+            bar.InProgress = false;
+            bar.BytesTransferred = 0;
+            bar.ProgressPercentage = 100;
+            bar.TotalBytes = 0;
+        }
+
         #endregion
 
         #region INTERFACE
@@ -335,7 +402,8 @@ namespace CoPilot.OneDrive
         /// <returns></returns>
         public async Task<Response> Upload(Progress bar)
         {
-            LiveOperationResult operationResult;
+            LiveOperationResult operationResult = null;
+            LivePendingUpload pending = null;
             OneDriveItem item;
 
             if (!this.IsConnected)
@@ -361,7 +429,21 @@ namespace CoPilot.OneDrive
                 };
 
                 //upload
-                operationResult = await this.liveClient.BackgroundUploadAsync(this.getFolderByType(bar.Type), bar.Url, OverwriteOption.Overwrite, bar.Cancel, progress);
+                try 
+                {
+                    operationResult = await this.liveClient.BackgroundUploadAsync(this.getFolderByType(bar.Type), bar.Url, OverwriteOption.Overwrite, bar.Cancel, progress);
+                } 
+                catch 
+                {
+                    pending = this.GetUploadOnBackground(bar.Url);
+                }
+
+                //try attach pending
+                if (pending != null)
+                {
+                    operationResult = await pending.AttachAsync(bar.Cancel, progress);
+                }
+                    
                 item = new OneDriveItem(operationResult.Result);
 
                 //load data about file
@@ -382,10 +464,7 @@ namespace CoPilot.OneDrive
             {
                 this.errorOccured(e, ErrorType.InvalidResponse);
             }
-            catch (Exception e)
-            {
-                return null;
-            }
+            this.falseProgressState(bar);
             return null;
         }
 
@@ -397,7 +476,8 @@ namespace CoPilot.OneDrive
         /// <returns></returns>
         public async Task<DownloadStatus> Download(String id, Progress bar)
         {
-            LiveOperationResult operationResult;
+            LiveOperationResult operationResult = null;
+            LivePendingDownload pending = null;
 
             if (!this.IsConnected)
             {
@@ -423,7 +503,20 @@ namespace CoPilot.OneDrive
                 await this.prepareStorage();
 
                 //download
-                operationResult = await this.liveClient.BackgroundDownloadAsync(id + "/content", bar.Url, bar.Cancel, progress);
+                try
+                {
+                    operationResult = await this.liveClient.BackgroundDownloadAsync(id + "/content", bar.Url, bar.Cancel, progress);
+                }
+                catch
+                {
+                    pending = this.GetDownloadOnBackground(bar.Url);
+                }
+
+                //try attach pending
+                if (pending != null)
+                {
+                    operationResult = await pending.AttachAsync(bar.Cancel, progress);
+                }
 
                 //bar update
                 bar.Selected = false;
@@ -436,10 +529,7 @@ namespace CoPilot.OneDrive
             {
                 this.errorOccured(e, ErrorType.InvalidResponse);
             }
-            catch (Exception e)
-            {
-                return DownloadStatus.InProgress;
-            }
+            this.falseProgressState(bar);
             return DownloadStatus.Fail;
         }
 
@@ -525,6 +615,9 @@ namespace CoPilot.OneDrive
         /// <returns></returns>
         public async Task<DownloadStatus> Preview(String id, Progress bar)
         {
+            LiveOperationResult operationResult = null;
+            LivePendingDownload pending = null;
+
             if (!this.IsConnected)
             {
                 return DownloadStatus.Fail;
@@ -546,11 +639,24 @@ namespace CoPilot.OneDrive
                 await this.prepareStorage();
 
                 //download
-                LiveOperationResult operationResult = await this.liveClient.GetAsync(id);
+                operationResult = await this.liveClient.GetAsync(id);
                 OneDriveItem item = new OneDriveItem(operationResult.Result);
                 
                 //download
-                LiveOperationResult result = await this.liveClient.BackgroundDownloadAsync(item.Picture, bar.Url, bar.Cancel, progress);
+                try
+                {
+                    operationResult = await this.liveClient.BackgroundDownloadAsync(item.Picture, bar.Url, bar.Cancel, progress);
+                }
+                catch
+                {
+                    pending = this.GetDownloadOnBackground(bar.Url);
+                }
+
+                //try attach pending
+                if (pending != null)
+                {
+                    operationResult = await pending.AttachAsync(bar.Cancel, progress);
+                }
 
                 //bar update
                 bar.Selected = false;
@@ -563,10 +669,7 @@ namespace CoPilot.OneDrive
             {
                 this.errorOccured(e, ErrorType.InvalidResponse);
             }
-            catch (Exception e)
-            {
-                return DownloadStatus.InProgress;
-            }
+            this.falseProgressState(bar);
             return DownloadStatus.Fail;
         }
 
