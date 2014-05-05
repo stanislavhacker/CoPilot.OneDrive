@@ -463,12 +463,26 @@ namespace CoPilot.OneDrive
                 //try attach pending
                 if (pending != null)
                 {
-                    operationResult = await pending.AttachAsync(bar.Cancel, progress);
+                    try
+                    {
+                        operationResult = await pending.AttachAsync(bar.Cancel, progress);
+                    }
+                    catch
+                    {
+                        operationResult = null;
+                    }
                 }
                 else
                 {
                     //upload
-                    operationResult = await this.liveClient.BackgroundUploadAsync(this.getFolderByType(bar.Type), bar.Url, OverwriteOption.Overwrite, bar.Cancel, progress);
+                    try
+                    {
+                        operationResult = await this.liveClient.BackgroundUploadAsync(this.getFolderByType(bar.Type), bar.Url, OverwriteOption.Overwrite, bar.Cancel, progress);
+                    }
+                    catch
+                    {
+                        operationResult = null;
+                    }
                 }
 
                 //if response is right
@@ -539,12 +553,26 @@ namespace CoPilot.OneDrive
                 //try attach pending
                 if (pending != null)
                 {
-                    operationResult = await pending.AttachAsync(bar.Cancel, progress);
+                    try
+                    {
+                        operationResult = await pending.AttachAsync(bar.Cancel, progress);
+                    }
+                    catch
+                    {
+                        operationResult = null;
+                    }
                 }
                 else
                 {
                     //download
-                    operationResult = await this.liveClient.BackgroundDownloadAsync(id + "/content", bar.Url, bar.Cancel, progress);
+                    try
+                    {
+                        operationResult = await this.liveClient.BackgroundDownloadAsync(id + "/content", bar.Url, bar.Cancel, progress);
+                    }
+                    catch
+                    {
+                        operationResult = null;
+                    }
                 }
 
                 //bar update
@@ -677,12 +705,26 @@ namespace CoPilot.OneDrive
                 //try attach pending
                 if (pending != null)
                 {
-                    operationResult = await pending.AttachAsync(bar.Cancel, progress);
+                    try 
+                    {
+                        operationResult = await pending.AttachAsync(bar.Cancel, progress);
+                    }
+                    catch
+                    {
+                        operationResult = null;
+                    }
                 }
                 else
                 {
                     //download
-                    operationResult = await this.liveClient.BackgroundDownloadAsync(item.Picture, bar.Url, bar.Cancel, progress);
+                    try
+                    {
+                        operationResult = await this.liveClient.BackgroundDownloadAsync(item.Picture, bar.Url, bar.Cancel, progress);
+                    }
+                    catch
+                    {
+                        operationResult = null;
+                    }
                 }
 
                 //bar update
