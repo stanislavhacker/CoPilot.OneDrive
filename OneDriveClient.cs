@@ -396,6 +396,35 @@ namespace CoPilot.OneDrive
         }
 
         /// <summary>
+        /// Progress
+        /// </summary>
+        /// <param name="bar"></param>
+        /// <returns></returns>
+        public Boolean Progress(Uri url)
+        {
+            if (!this.IsConnected)
+            {
+                return false;
+            }
+
+            //pending upload
+            LivePendingUpload upload = this.GetUploadOnBackground(url);
+            if (upload != null) 
+            {
+                return true;
+            }
+
+            //pending download
+            LivePendingDownload download = this.GetDownloadOnBackground(url);
+            if (download != null)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Upload
         /// </summary>
         /// <param name="bar"></param>
@@ -428,37 +457,39 @@ namespace CoPilot.OneDrive
                     bar.TotalBytes = e.TotalBytes;
                 };
 
-                //upload
-                try 
-                {
-                    operationResult = await this.liveClient.BackgroundUploadAsync(this.getFolderByType(bar.Type), bar.Url, OverwriteOption.Overwrite, bar.Cancel, progress);
-                } 
-                catch 
-                {
-                    pending = this.GetUploadOnBackground(bar.Url);
-                }
+                //get pending
+                pending = this.GetUploadOnBackground(bar.Url);
 
                 //try attach pending
                 if (pending != null)
                 {
                     operationResult = await pending.AttachAsync(bar.Cancel, progress);
                 }
-                    
-                item = new OneDriveItem(operationResult.Result);
+                else
+                {
+                    //upload
+                    operationResult = await this.liveClient.BackgroundUploadAsync(this.getFolderByType(bar.Type), bar.Url, OverwriteOption.Overwrite, bar.Cancel, progress);
+                }
 
-                //load data about file
-                operationResult = await this.liveClient.GetAsync(item.Id);
-                item = new OneDriveItem(operationResult.Result);
+                //if response is right
+                if (operationResult != null)
+                {
+                    item = new OneDriveItem(operationResult.Result);
 
-                //bar update
-                bar.Selected = false;
-                bar.InProgress = false;
+                    //load data about file
+                    operationResult = await this.liveClient.GetAsync(item.Id);
+                    item = new OneDriveItem(operationResult.Result);
 
-                //return
-                var reponse = new Response();
-                reponse.Id = item.Id;
-                reponse.Url = item.Link;
-                return reponse;
+                    //bar update
+                    bar.Selected = false;
+                    bar.InProgress = false;
+
+                    //return
+                    var reponse = new Response();
+                    reponse.Id = item.Id;
+                    reponse.Url = item.Link;
+                    return reponse;
+                }
             }
             catch (LiveAuthException e)
             {
@@ -502,20 +533,18 @@ namespace CoPilot.OneDrive
                 //prepare storage
                 await this.prepareStorage();
 
-                //download
-                try
-                {
-                    operationResult = await this.liveClient.BackgroundDownloadAsync(id + "/content", bar.Url, bar.Cancel, progress);
-                }
-                catch
-                {
-                    pending = this.GetDownloadOnBackground(bar.Url);
-                }
+                //get pending 
+                pending = this.GetDownloadOnBackground(bar.Url);
 
                 //try attach pending
                 if (pending != null)
                 {
                     operationResult = await pending.AttachAsync(bar.Cancel, progress);
+                }
+                else
+                {
+                    //download
+                    operationResult = await this.liveClient.BackgroundDownloadAsync(id + "/content", bar.Url, bar.Cancel, progress);
                 }
 
                 //bar update
@@ -523,7 +552,7 @@ namespace CoPilot.OneDrive
                 bar.InProgress = false;
 
                 //return
-                return operationResult.Result != null ? DownloadStatus.Complete : DownloadStatus.Fail;
+                return operationResult != null && operationResult.Result != null ? DownloadStatus.Complete : DownloadStatus.Fail;
             }
             catch (LiveAuthException e)
             {
@@ -641,21 +670,19 @@ namespace CoPilot.OneDrive
                 //download
                 operationResult = await this.liveClient.GetAsync(id);
                 OneDriveItem item = new OneDriveItem(operationResult.Result);
-                
-                //download
-                try
-                {
-                    operationResult = await this.liveClient.BackgroundDownloadAsync(item.Picture, bar.Url, bar.Cancel, progress);
-                }
-                catch
-                {
-                    pending = this.GetDownloadOnBackground(bar.Url);
-                }
+
+                //get pending 
+                pending = this.GetDownloadOnBackground(bar.Url);
 
                 //try attach pending
                 if (pending != null)
                 {
                     operationResult = await pending.AttachAsync(bar.Cancel, progress);
+                }
+                else
+                {
+                    //download
+                    operationResult = await this.liveClient.BackgroundDownloadAsync(item.Picture, bar.Url, bar.Cancel, progress);
                 }
 
                 //bar update
