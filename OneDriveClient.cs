@@ -513,7 +513,7 @@ namespace CoPilot.OneDrive
                 {
                     try
                     {
-                        operationResult = await pending.AttachAsync(bar.Cancel, progress);
+                        operationResult = await pending.AttachAsync(bar.Cancel.Token, progress);
                     }
                     catch
                     {
@@ -525,7 +525,7 @@ namespace CoPilot.OneDrive
                     //upload
                     try
                     {
-                        operationResult = await this.liveClient.BackgroundUploadAsync(this.getFolderByType(bar.Type), bar.Url, OverwriteOption.Overwrite, bar.Cancel, progress);
+                        operationResult = await this.liveClient.BackgroundUploadAsync(this.getFolderByType(bar.Type), bar.Url, OverwriteOption.Overwrite, bar.Cancel.Token, progress);
                     }
                     catch
                     {
@@ -604,7 +604,7 @@ namespace CoPilot.OneDrive
                 {
                     try
                     {
-                        operationResult = await pending.AttachAsync(bar.Cancel, progress);
+                        operationResult = await pending.AttachAsync(bar.Cancel.Token, progress);
                     }
                     catch
                     {
@@ -616,7 +616,7 @@ namespace CoPilot.OneDrive
                     //download
                     try
                     {
-                        operationResult = await this.liveClient.BackgroundDownloadAsync(id + "/content", bar.Url, bar.Cancel, progress);
+                        operationResult = await this.liveClient.BackgroundDownloadAsync(id + "/content", bar.Url, bar.Cancel.Token, progress);
                     }
                     catch
                     {
@@ -757,7 +757,7 @@ namespace CoPilot.OneDrive
                 {
                     try 
                     {
-                        operationResult = await pending.AttachAsync(bar.Cancel, progress);
+                        operationResult = await pending.AttachAsync(bar.Cancel.Token, progress);
                     }
                     catch
                     {
@@ -769,7 +769,7 @@ namespace CoPilot.OneDrive
                     //download
                     try
                     {
-                        operationResult = await this.liveClient.BackgroundDownloadAsync(item.Picture, bar.Url, bar.Cancel, progress);
+                        operationResult = await this.liveClient.BackgroundDownloadAsync(item.Picture, bar.Url, bar.Cancel.Token, progress);
                     }
                     catch
                     {
