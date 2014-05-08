@@ -49,6 +49,7 @@ namespace CoPilot.OneDrive
         /// </summary>
         public OneDriveClient()
         {
+            //client
             loginClient = new LiveAuthClient(CLIEND_ID);
         }
 
@@ -331,6 +332,52 @@ namespace CoPilot.OneDrive
             bar.TotalBytes = 0;
         }
 
+        /// <summary>
+        /// Update preferences
+        /// </summary>
+        /// <param name="bar"></param>
+        private void updatePreferences(Interfaces.Progress bar)
+        {
+            var client = this.liveClient;
+            client.BackgroundTransferPreferences = this.getBackgroundProgressPreferences(bar.Preferences);
+        }
+
+        /// <summary>
+        /// GetBackgroundProgressPreferences
+        /// </summary>
+        /// <param name="prefs"></param>
+        /// <returns></returns>
+        private BackgroundTransferPreferences getBackgroundProgressPreferences(ProgressPreferences prefs)
+        {
+            var backgroundPrefs = this.liveClient.BackgroundTransferPreferences;
+            switch (prefs)
+            {
+                case ProgressPreferences.AllowOnCelluralAndBatery:
+                    if (backgroundPrefs != BackgroundTransferPreferences.AllowCellularAndBattery)
+                    {
+                        return BackgroundTransferPreferences.AllowCellularAndBattery;
+                    }
+                    return backgroundPrefs;
+                case ProgressPreferences.AllowOnWifiAndBatery:
+                    if (backgroundPrefs == BackgroundTransferPreferences.AllowCellularAndBattery || 
+                        backgroundPrefs == BackgroundTransferPreferences.AllowBattery)
+                    {
+                        return backgroundPrefs;
+                    }
+                    return BackgroundTransferPreferences.AllowBattery;
+                case ProgressPreferences.AllowOnWifiAndExternalPower:
+                    if (backgroundPrefs == BackgroundTransferPreferences.AllowCellularAndBattery ||
+                        backgroundPrefs == BackgroundTransferPreferences.AllowCellular || 
+                        backgroundPrefs == BackgroundTransferPreferences.AllowBattery)
+                    {
+                        return backgroundPrefs;
+                    }
+                    return BackgroundTransferPreferences.None;
+                default:
+                    return BackgroundTransferPreferences.None;
+            }
+        }
+
         #endregion
 
         #region INTERFACE
@@ -444,6 +491,7 @@ namespace CoPilot.OneDrive
             {
                 //progress
                 bar.InProgress = true;
+                this.updatePreferences(bar);
 
                 //prepare storage
                 await this.prepareStorage();
@@ -543,6 +591,7 @@ namespace CoPilot.OneDrive
             {
                 //progress
                 bar.InProgress = true;
+                this.updatePreferences(bar);
 
                 //prepare storage
                 await this.prepareStorage();
@@ -694,6 +743,7 @@ namespace CoPilot.OneDrive
             {
                 //prepare storage
                 await this.prepareStorage();
+                this.updatePreferences(bar);
 
                 //download
                 operationResult = await this.liveClient.GetAsync(id);
