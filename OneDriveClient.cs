@@ -447,12 +447,14 @@ namespace CoPilot.OneDrive
         /// </summary>
         /// <param name="bar"></param>
         /// <returns></returns>
-        public Boolean Progress(Uri url)
+        public async Task<Boolean> Progress(Uri url)
         {
             if (!this.IsConnected)
             {
                 return false;
             }
+
+            await Task.Delay(0);
 
             //pending upload
             LivePendingUpload upload = this.GetUploadOnBackground(url);
