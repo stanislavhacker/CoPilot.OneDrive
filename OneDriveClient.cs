@@ -281,7 +281,7 @@ namespace CoPilot.OneDrive
                     {
                         var request = field.GetValue(upload);
                         var requestUrl = request.GetType().GetRuntimeProperty("UploadLocation").GetValue(request) as Uri;
-                        if (requestUrl.OriginalString.Replace("\\", "/") == url.OriginalString)
+                        if (requestUrl != null && requestUrl.OriginalString.Replace("\\", "/") == url.OriginalString)
                         {
                             return upload;
                         }
@@ -308,7 +308,7 @@ namespace CoPilot.OneDrive
                     {
                         var request = field.GetValue(upload);
                         var requestUrl = request.GetType().GetRuntimeProperty("UploadLocation").GetValue(request) as Uri;
-                        if (requestUrl.OriginalString.Replace("\\", "/") == url.OriginalString)
+                        if (requestUrl != null && requestUrl.OriginalString.Replace("\\", "/") == url.OriginalString)
                         {
                             return upload;
                         }
