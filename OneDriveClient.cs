@@ -298,19 +298,19 @@ namespace CoPilot.OneDrive
         /// <returns></returns>
         private LivePendingDownload GetDownloadOnBackground(Uri url)
         {
-            var uploads = this.liveClient.GetPendingBackgroundDownloads();
-            foreach (var upload in uploads)
+            var downloads = this.liveClient.GetPendingBackgroundDownloads();
+            foreach (var download in downloads)
             {
-                var fields = upload.GetType().GetRuntimeFields().ToArray();
+                var fields = download.GetType().GetRuntimeFields().ToArray();
                 foreach (var field in fields)
                 {
                     if (field.Name == "request")
                     {
-                        var request = field.GetValue(upload);
-                        var requestUrl = request.GetType().GetRuntimeProperty("UploadLocation").GetValue(request) as Uri;
+                        var request = field.GetValue(download);
+                        var requestUrl = request.GetType().GetRuntimeProperty("DownloadLocation").GetValue(request) as Uri;
                         if (requestUrl != null && requestUrl.OriginalString.Replace("\\", "/") == url.OriginalString)
                         {
-                            return upload;
+                            return download;
                         }
                     }
                 }
