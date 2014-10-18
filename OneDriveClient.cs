@@ -101,13 +101,20 @@ namespace CoPilot.OneDrive
             var loaded = await this.folderLoad("/me/skydrive");
             if (loaded != null)
             {
-                RootFolder = await this.ensureExists(RootFolder, loaded, ROOT_FOLDER_NAME);
-                if (RootFolder != null)
+                try
                 {
-                    VideoFolder = await this.ensureExists(VideoFolder, RootFolder, VIDEO_FOLDER_NAME);
-                    PhotoFolder = await this.ensureExists(PhotoFolder, RootFolder, PHOTO_FOLDER_NAME);
-                    DataFolder = await this.ensureExists(DataFolder, RootFolder, DATA_FOLDER_NAME);
-                    return;
+                    RootFolder = await this.ensureExists(RootFolder, loaded, ROOT_FOLDER_NAME);
+                    if (RootFolder != null)
+                    {
+                        VideoFolder = await this.ensureExists(VideoFolder, RootFolder, VIDEO_FOLDER_NAME);
+                        PhotoFolder = await this.ensureExists(PhotoFolder, RootFolder, PHOTO_FOLDER_NAME);
+                        DataFolder = await this.ensureExists(DataFolder, RootFolder, DATA_FOLDER_NAME);
+                        return;
+                    }
+                }
+                catch
+                {
+                    errorOccured(new Exception("Can not create folders in storage."), ErrorType.CreateFolderFail);
                 }
             }
             errorOccured(new Exception("Can not create folders in storage."), ErrorType.CreateFolderFail);
