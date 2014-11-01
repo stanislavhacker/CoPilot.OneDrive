@@ -373,12 +373,6 @@ namespace CoPilot.OneDrive
                     }
                     return BackgroundTransferPreferences.AllowBattery;
                 case ProgressPreferences.AllowOnWifiAndExternalPower:
-                    if (backgroundPrefs == BackgroundTransferPreferences.AllowCellularAndBattery ||
-                        backgroundPrefs == BackgroundTransferPreferences.AllowCellular || 
-                        backgroundPrefs == BackgroundTransferPreferences.AllowBattery)
-                    {
-                        return backgroundPrefs;
-                    }
                     return BackgroundTransferPreferences.None;
                 default:
                     return BackgroundTransferPreferences.None;
