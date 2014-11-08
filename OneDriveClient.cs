@@ -32,6 +32,7 @@ namespace CoPilot.OneDrive
         private Boolean IsConnected = false;
         private LiveAuthClient loginClient;
         private LiveConnectClient liveClient;
+        private List<BackgroundTransferPreferences> usedPreferences = new List<BackgroundTransferPreferences>();
 
         #endregion
 
@@ -350,6 +351,25 @@ namespace CoPilot.OneDrive
         }
 
         /// <summary>
+        /// Get BackgroundTransferPreferencesType
+        /// </summary>
+        /// <param name="prefs"></param>
+        /// <returns></returns>
+        private BackgroundTransferPreferences getBackgroundTransferPreferencesType(ProgressPreferences prefs)
+        {
+            //change type
+            switch (prefs)
+            {
+                case ProgressPreferences.AllowOnCelluralAndBatery:
+                    return BackgroundTransferPreferences.AllowCellularAndBattery;
+                case ProgressPreferences.AllowOnWifiAndBatery:
+                    return BackgroundTransferPreferences.AllowBattery;
+                default:
+                    return BackgroundTransferPreferences.None;
+            }
+        }
+
+        /// <summary>
         /// GetBackgroundProgressPreferences
         /// </summary>
         /// <param name="prefs"></param>
@@ -357,25 +377,40 @@ namespace CoPilot.OneDrive
         private BackgroundTransferPreferences getBackgroundProgressPreferences(ProgressPreferences prefs)
         {
             var backgroundPrefs = this.liveClient.BackgroundTransferPreferences;
-            switch (prefs)
+            var used = this.usedPreferences;
+            var liveRefs = this.getBackgroundTransferPreferencesType(prefs);
+
+            //push
+            used.Add(liveRefs);
+
+            //contains
+            var cointansNone = used.Contains(BackgroundTransferPreferences.None);
+            var cointansAllowBattery = used.Contains(BackgroundTransferPreferences.AllowBattery);
+
+            //returns
+            if (cointansNone)
             {
-                case ProgressPreferences.AllowOnCelluralAndBatery:
-                    if (backgroundPrefs != BackgroundTransferPreferences.AllowCellularAndBattery)
-                    {
-                        return BackgroundTransferPreferences.AllowCellularAndBattery;
-                    }
-                    return backgroundPrefs;
-                case ProgressPreferences.AllowOnWifiAndBatery:
-                    if (backgroundPrefs == BackgroundTransferPreferences.AllowCellularAndBattery || 
-                        backgroundPrefs == BackgroundTransferPreferences.AllowBattery)
-                    {
-                        return backgroundPrefs;
-                    }
-                    return BackgroundTransferPreferences.AllowBattery;
-                case ProgressPreferences.AllowOnWifiAndExternalPower:
-                    return BackgroundTransferPreferences.None;
-                default:
-                    return BackgroundTransferPreferences.None;
+                return BackgroundTransferPreferences.None;
+            }
+            if (cointansAllowBattery)
+            {
+                return BackgroundTransferPreferences.AllowBattery;
+            }
+            return BackgroundTransferPreferences.AllowCellularAndBattery;
+        }
+
+        /// <summary>
+        /// Remove UsedBackgroundProgressPreferences
+        /// </summary>
+        /// <param name="prefs"></param>
+        private void removeUsedBackgroundProgressPreferences(ProgressPreferences prefs)
+        {
+            var used = this.usedPreferences;
+            var liveRefs = this.getBackgroundTransferPreferencesType(prefs);
+
+            if (used.Contains(liveRefs))
+            {
+                used.Remove(liveRefs);
             }
         }
 
@@ -525,14 +560,38 @@ namespace CoPilot.OneDrive
                 }
                 else
                 {
-                    //upload
+                    uint error = 0;
+
+                    //background upload
                     try
                     {
                         operationResult = await this.liveClient.BackgroundUploadAsync(this.getFolderByType(bar.Type), bar.Url, OverwriteOption.Overwrite, bar.Cancel.Token, progress);
                     }
-                    catch
+                    catch (Exception e)
                     {
+                        error = (uint)e.HResult;
                         operationResult = null;
+                    }
+
+
+                    //size limit is bigger
+                    if (error == 0x80131509)
+                    {
+                        //normal upload
+                        try
+                        {
+                            //set read from stream
+                            bar.IsStream = true;
+                            //make absolute uri
+                            var absolute = new Uri("file:/" + bar.Url.OriginalString);
+                            var name = absolute.Segments.Last();
+                            //upload
+                            operationResult = await this.liveClient.UploadAsync(this.getFolderByType(bar.Type), name, bar.Stream, OverwriteOption.Overwrite, bar.Cancel.Token, progress);
+                        }
+                        catch (Exception e)
+                        {
+                            operationResult = null;
+                        }
                     }
                 }
 
@@ -540,6 +599,9 @@ namespace CoPilot.OneDrive
                 if (operationResult != null)
                 {
                     item = new OneDriveItem(operationResult.Result);
+
+                    //remove
+                    this.removeUsedBackgroundProgressPreferences(bar.Preferences);
 
                     //load data about file
                     operationResult = await this.liveClient.GetAsync(item.Id);
@@ -561,6 +623,8 @@ namespace CoPilot.OneDrive
                 this.errorOccured(e, ErrorType.InvalidResponse);
             }
             this.falseProgressState(bar);
+            //remove
+            this.removeUsedBackgroundProgressPreferences(bar.Preferences);
             return null;
         }
 
@@ -626,7 +690,8 @@ namespace CoPilot.OneDrive
                         operationResult = null;
                     }
                 }
-
+                //remove
+                this.removeUsedBackgroundProgressPreferences(bar.Preferences);
                 //bar update
                 bar.Selected = false;
                 bar.InProgress = false;
@@ -639,6 +704,8 @@ namespace CoPilot.OneDrive
                 this.errorOccured(e, ErrorType.InvalidResponse);
             }
             this.falseProgressState(bar);
+            //remove
+            this.removeUsedBackgroundProgressPreferences(bar.Preferences);
             return DownloadStatus.Fail;
         }
 
@@ -779,7 +846,8 @@ namespace CoPilot.OneDrive
                         operationResult = null;
                     }
                 }
-
+                //remove
+                this.removeUsedBackgroundProgressPreferences(bar.Preferences);
                 //bar update
                 bar.Selected = false;
                 bar.InProgress = false;
@@ -792,6 +860,8 @@ namespace CoPilot.OneDrive
                 this.errorOccured(e, ErrorType.InvalidResponse);
             }
             this.falseProgressState(bar);
+            //remove
+            this.removeUsedBackgroundProgressPreferences(bar.Preferences);
             return DownloadStatus.Fail;
         }
 
