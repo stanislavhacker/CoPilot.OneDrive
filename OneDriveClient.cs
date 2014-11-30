@@ -567,31 +567,9 @@ namespace CoPilot.OneDrive
                     {
                         operationResult = await this.liveClient.BackgroundUploadAsync(this.getFolderByType(bar.Type), bar.Url, OverwriteOption.Overwrite, bar.Cancel.Token, progress);
                     }
-                    catch (Exception e)
+                    catch
                     {
-                        error = (uint)e.HResult;
                         operationResult = null;
-                    }
-
-
-                    //size limit is bigger
-                    if (error == 0x80131509)
-                    {
-                        //normal upload
-                        try
-                        {
-                            //set read from stream
-                            bar.IsStream = true;
-                            //make absolute uri
-                            var absolute = new Uri("file:/" + bar.Url.OriginalString);
-                            var name = absolute.Segments.Last();
-                            //upload
-                            operationResult = await this.liveClient.UploadAsync(this.getFolderByType(bar.Type), name, bar.Stream, OverwriteOption.Overwrite, bar.Cancel.Token, progress);
-                        }
-                        catch (Exception e)
-                        {
-                            operationResult = null;
-                        }
                     }
                 }
 
