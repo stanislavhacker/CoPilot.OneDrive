@@ -128,11 +128,23 @@ namespace CoPilot.OneDrive
         /// <returns></returns>
         private async Task<OneDriveItem> folderLoad(string where)
         {
-            LiveOperationResult operationResult = await this.liveClient.GetAsync(where);
-            dynamic result = operationResult.Result;
-            if (result != null)
+            LiveOperationResult operationResult;
+            try
             {
-                return new OneDriveItem(result);
+                operationResult = await this.liveClient.GetAsync(where);
+            }
+            catch
+            {
+                operationResult = null;
+            }
+            //check if loaded
+            if (operationResult != null)
+            {
+                dynamic result = operationResult.Result;
+                if (result != null)
+                {
+                    return new OneDriveItem(result);
+                }
             }
             return null;
         }
@@ -173,17 +185,34 @@ namespace CoPilot.OneDrive
         /// <returns></returns>
         private async Task<OneDriveItem> folderExists(string where, string what)
         {
-            LiveOperationResult operationResult = await this.liveClient.GetAsync(where);
-            dynamic result = operationResult.Result;
-            if (result.data != null)
+            LiveOperationResult operationResult;
+            try
             {
-                foreach (dynamic item in result.data)
+                operationResult = await this.liveClient.GetAsync(where);
+            }
+            catch
+            {
+                operationResult = null;
+            }
+
+            //load data
+            if (operationResult != null)
+            {
+                dynamic result = operationResult.Result;
+                if (result.data != null)
                 {
-                    var file = new OneDriveItem(item);
-                    if (file.IsFolder && file.Name == what)
+                    foreach (dynamic item in result.data)
                     {
-                        return file;
+                        var file = new OneDriveItem(item);
+                        if (file.IsFolder && file.Name == what)
+                        {
+                            return file;
+                        }
                     }
+                }
+                else
+                {
+                    this.errorOccured(new Exception("Server did not return a valid response."), ErrorType.InvalidResponse);
                 }
             }
             else
