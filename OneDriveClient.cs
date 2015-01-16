@@ -749,6 +749,10 @@ namespace CoPilot.OneDrive
             {
                 this.errorOccured(e, ErrorType.InvalidResponse);
             }
+            catch (Exception e)
+            {
+                return null;
+            }
             return null;
         }
 
