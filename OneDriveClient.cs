@@ -98,8 +98,18 @@ namespace CoPilot.OneDrive
                 return;
             }
 
+            OneDriveItem loaded;
             //root folder
-            var loaded = await this.folderLoad("/me/skydrive");
+            try
+            {
+                loaded = await this.folderLoad("/me/skydrive");
+            }
+            catch
+            {
+                loaded = null;
+            }
+
+            //check if loaded
             if (loaded != null)
             {
                 try
