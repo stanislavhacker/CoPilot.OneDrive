@@ -880,6 +880,10 @@ namespace CoPilot.OneDrive
             {
                 this.errorOccured(e, ErrorType.InvalidResponse);
             }
+            catch (Exception e)
+            {
+                this.errorOccured(e, ErrorType.InvalidResponse);
+            }
             this.falseProgressState(bar);
             //remove
             this.removeUsedBackgroundProgressPreferences(bar.Preferences);
